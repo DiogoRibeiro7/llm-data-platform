@@ -28,3 +28,12 @@ Thumbs.db
 
 *.local.yaml
 *.local.yml
+pip-wheel-metadata/
+pip-wheel-metadata
+.cache
+*.pyc
+*.pyo
+*.pyd
+.pyre/
+*.log
+*.tmp
