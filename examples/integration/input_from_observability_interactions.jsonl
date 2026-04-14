@@ -1,0 +1,1 @@
+{"query_id":"qry_001","trace_id":"trc_001","prompt_text":"How do I reset my password?","response_text":"Verify identity and update credentials.","model_context":{"model_version":"gpt-5.4-mini","dataset_version":"2026.03.14"},"retrieval_references":[{"document_id":"doc_abc123","chunk_id":"chk_001"}]}

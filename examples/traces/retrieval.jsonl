@@ -1,0 +1,2 @@
+{"query_id":"qry-001","trace_id":"trc-001","expected_document_id":"doc-101","expected_chunk_id":"chk-101a","retrieved":[{"document_id":"doc-101","chunk_id":"chk-101a"},{"document_id":"doc-102","chunk_id":"chk-102a"}]}
+{"query_id":"qry-002","trace_id":"trc-002","expected_document_id":"doc-102","expected_chunk_id":"chk-102a","retrieved":[{"document_id":"doc-102","chunk_id":"chk-102a"}]}

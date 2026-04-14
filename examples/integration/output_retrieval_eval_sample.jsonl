@@ -1,0 +1,1 @@
+{"dataset_id":"ds-foundry-mvp","dataset_version":"2026.03.14","record_id":"rec_b1","query_id":"qry_001","trace_id":"trc_001","expected_document_id":"doc_abc123","expected_chunk_id":"chk_001","retrieved":[{"document_id":"doc_abc123","chunk_id":"chk_001","rank":0}],"model_version":"gpt-5.4-mini","contract_version":"1.0"}

@@ -1,0 +1,2 @@
+{"document_id":"doc-101","source_id":"kb-support","title":"Password Reset Policy","content":"To reset a password, the user must verify identity and update credentials.","metadata":{"category":"policy"}}
+{"document_id":"doc-102","source_id":"kb-support","title":"API Rate Limits","content":"The public API allows 1000 requests per minute per workspace.","metadata":{"category":"api"}}
