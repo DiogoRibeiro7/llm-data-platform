@@ -1,93 +1,77 @@
-# llm-observability-analytics
+# llm-data-platform
 
-Observability and analytics layer for a multi-repository LLM data engineering platform.
+Monorepo containing lightweight tools for ingesting, processing and observing LLM data workflows.
 
-## Platform Position
+Included packages
 
-`llm-observability-analytics` sits between ingestion outputs and dataset curation.
-It remains an independent repository and provides runtime telemetry and derived analytics.
+- `llm_knowledge_ingestion` — parsers, chunking, sources and pipeline interfaces.
+- `llm_dataset_foundry` — dataset curation utilities and ingestion consumers.
+- `llm_observability_analytics` — runtime telemetry, traces and analytics.
 
-It explicitly integrates with:
+This repository consolidates the three components above to simplify development and CI.
 
-- `llm-knowledge-ingestion` (upstream contract provider for `document_id`/`chunk_id`)
-- `llm-dataset-foundry` (downstream consumer of curated interaction and retrieval traces)
-
-## Upstream Inputs and Downstream Outputs
-
-Upstream inputs:
-
-- retrieval grounding context keyed by `document_id` and `chunk_id` from `llm-knowledge-ingestion`
-- runtime prompt/response telemetry from serving systems
-
-Downstream outputs:
-
-- validated interaction events (`interactions.jsonl`)
-- validated retrieval trace events (`retrieval_traces.jsonl`)
-- analytics summaries and derived metrics
-
-## Shared Identifiers
-
-Produced and consumed:
-
-- `query_id`
-- `trace_id`
-- `model_version`
-- `dataset_version` (optional context)
-
-Consumed from ingestion:
-
-- `document_id`
-- `chunk_id`
-- `source_id`
-
-## Why This Layer Exists
-
-- correlate runtime behavior with source grounding
-- compute latency/token/grounding quality metrics
-- provide analytics-ready records for monitoring and dataset generation
-
-## Integration References
-
-- `docs/data-contracts.md`
-- `docs/integration.md`
-- `examples/integration/`
-
-## Local Development
+Quickstart
 
 Prerequisites:
 
 - Python 3.12+
-- GNU Make (or equivalent direct commands)
+- Optional: `make` for convenience targets
 
-Setup:
+Setup (Unix/macOS):
 
 ```bash
 python -m venv .venv
-. .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+source .venv/bin/activate
 python -m pip install -U pip
-pip install -e .[dev]
+pip install -e '.[dev]'
 ```
 
-Common commands:
+Setup (Windows PowerShell):
+
+```powershell
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -e ".[dev]"
+```
+
+Development commands
+
+- Format: `make format` (runs `ruff format`) 
+- Lint: `make lint` (runs `ruff check`)
+- Type check: `make typecheck` (runs `mypy src`)
+- Tests: `make test` (runs `pytest`) or `python -m scripts.run_tests_by_package` to run tests grouped by package
+
+Testing notes
+
+This monorepo contains tests for multiple packages. Use the provided script to run tests grouped by package to avoid pytest collection collisions:
 
 ```bash
-make format
-make lint
-make typecheck
-make test
-make ci
+python -m scripts.run_tests_by_package
 ```
 
-CLI:
+Continuous Integration
 
-```bash
-python -m llm_observability_analytics.cli.main --dry-run --config configs/base.yaml
-python -m llm_observability_analytics.cli.main --config configs/base.yaml
-```
+The GitHub Actions workflow is at [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs lint, type-check and the grouped tests.
 
+Contributing
 
-## Cross-Repo Consistency Checks
+- Open issues or PRs against `main`.
+- Run `make format` and `make lint` before pushing.
+- Add unit tests for new behavior and keep `mypy` passing.
 
-- Machine-readable summary: docs/shared-contract-summary.json`n- Manual validator: python scripts/validate_shared_contracts.py`n- Cross-repo check example:
-  python scripts/validate_shared_contracts.py --peer ../llm-knowledge-ingestion/docs/shared-contract-summary.json --peer ../llm-dataset-foundry/docs/shared-contract-summary.json
+Repository layout
+
+- `src/` — source packages under `llm_dataset_foundry`, `llm_knowledge_ingestion`, `llm_observability_analytics`
+- `tests/` — integration/unit tests
+- `scripts/` — utility scripts (e.g., `run_tests_by_package.py`)
+- `.github/workflows/ci.yml` — CI configuration
+
+License
+
+This project uses the repository `LICENSE` file.
+
+Contact
+
+For questions, open an issue or contact the maintainers via GitHub.
 
