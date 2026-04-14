@@ -5,8 +5,8 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 
 def collect_tests(tests_dir: Path):

@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 
-from llm_observability_analytics.metrics.models import MetricRecord, AnalyticsSummary
+from llm_observability_analytics.metrics.models import AnalyticsSummary, MetricRecord
 
 
 def test_metric_record_basic():
-    mr = MetricRecord(metric_name="latency", metric_value=12.5, dimension_key="service", dimension_value="svc-a")
+    mr = MetricRecord(
+        metric_name="latency", metric_value=12.5, dimension_key="service", dimension_value="svc-a"
+    )
     assert mr.metric_name == "latency"
     assert mr.metric_value == 12.5
 
@@ -32,4 +34,3 @@ def test_analytics_summary_roundtrip():
     j = s.to_json()
     parsed = json.loads(j)
     assert parsed == asdict(s)
-
