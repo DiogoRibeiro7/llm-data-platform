@@ -1,5 +1,32 @@
 from __future__ import annotations
 
+
+def load_interaction_events_with_validation(
+    path: Path, max_events: int
+) -> tuple[list[LLMInteractionEvent], list[str]]:
+    events: list[LLMInteractionEvent] = []
+    errors: list[str] = []
+    for idx, payload in enumerate(_load_jsonl(path, max_events), start=1):
+        try:
+            events.append(LLMInteractionEvent.from_dict(payload))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{path}:{idx}: {exc}")
+    return events, errors
+
+
+def load_retrieval_trace_events_with_validation(
+    path: Path, max_events: int
+) -> tuple[list[RetrievalTraceEvent], list[str]]:
+    events: list[RetrievalTraceEvent] = []
+    errors: list[str] = []
+    for idx, payload in enumerate(_load_jsonl(path, max_events), start=1):
+        try:
+            events.append(RetrievalTraceEvent.from_dict(payload))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{path}:{idx}: {exc}")
+    return events, errors
+
+
 import json
 from pathlib import Path
 from typing import Any
@@ -46,4 +73,8 @@ def load_retrieval_trace_events(path: Path, max_events: int) -> list[RetrievalTr
             events.append(RetrievalTraceEvent.from_dict(payload))
         except Exception as exc:  # noqa: BLE001
             raise ValueError(f"Invalid retrieval event at {path}:{idx}") from exc
+    return events
+    return events
+    return events
+    return events
     return events
