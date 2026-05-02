@@ -8,6 +8,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+OBSERVABILITY_COVERAGE_MIN = 55
+
 
 def collect_tests(tests_dir: Path):
     pattern = re.compile(r"from\s+(llm_[a-z0-9_]+)|import\s+(llm_[a-z0-9_]+)")
@@ -39,6 +41,8 @@ def run_group(pkg: str, files: list[str], src_path: Path) -> int:
     ]
     if pkg != "__root__":
         cmd.extend(["--cov", pkg, "--cov-report", "term-missing"])
+    if pkg == "llm_observability_analytics":
+        cmd.extend(["--cov-fail-under", str(OBSERVABILITY_COVERAGE_MIN)])
     cmd.extend(files)
     proc = subprocess.run(cmd, env=env)
     return proc.returncode

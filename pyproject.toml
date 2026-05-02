@@ -72,5 +72,5 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-q --strict-markers --disable-warnings --cov=llm_observability_analytics --cov-report=term-missing"
+addopts = "-q --strict-markers --disable-warnings --cov=llm_observability_analytics --cov-report=term-missing --cov-fail-under=55"
 testpaths = ["tests"]
