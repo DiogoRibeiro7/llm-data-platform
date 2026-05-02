@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from llm_observability_analytics.contracts.models import (
+    LatencyRecord,
     LLMInteractionEvent,
     ModelExecutionContext,
-    TokenUsageRecord,
-    LatencyRecord,
-    SourceGroundingReference,
     RetrievalTraceEvent,
+    SourceGroundingReference,
+    TokenUsageRecord,
 )
 from llm_observability_analytics.events.loader import (
     load_interaction_events,
@@ -20,7 +20,7 @@ from llm_observability_analytics.events.loader import (
 
 
 def _now_iso() -> str:
-    return datetime.now(tz=timezone.utc).isoformat()
+    return datetime.now(tz=UTC).isoformat()
 
 
 def _make_interaction(query_id: str, trace_id: str) -> LLMInteractionEvent:
@@ -39,13 +39,13 @@ def _make_interaction(query_id: str, trace_id: str) -> LLMInteractionEvent:
         dataset_version=None,
         input_tokens=1,
         output_tokens=2,
-        recorded_at=datetime.now(timezone.utc),
+        recorded_at=datetime.now(UTC),
     )
     lat = LatencyRecord(
         query_id=query_id,
         trace_id=trace_id,
-        request_timestamp=datetime.now(timezone.utc),
-        response_timestamp=datetime.now(timezone.utc),
+        request_timestamp=datetime.now(UTC),
+        response_timestamp=datetime.now(UTC),
         latency_ms=123,
     )
     ref = SourceGroundingReference(
@@ -54,8 +54,8 @@ def _make_interaction(query_id: str, trace_id: str) -> LLMInteractionEvent:
     return LLMInteractionEvent(
         query_id=query_id,
         trace_id=trace_id,
-        request_timestamp=datetime.now(timezone.utc),
-        response_timestamp=datetime.now(timezone.utc),
+        request_timestamp=datetime.now(UTC),
+        response_timestamp=datetime.now(UTC),
         prompt_text="p",
         response_text="r",
         model_context=mc,
@@ -72,7 +72,7 @@ def _make_retrieval(query_id: str, trace_id: str) -> RetrievalTraceEvent:
     return RetrievalTraceEvent(
         query_id=query_id,
         trace_id=trace_id,
-        retrieval_timestamp=datetime.now(timezone.utc),
+        retrieval_timestamp=datetime.now(UTC),
         query_text="hello",
         retrieval_system="r",
         top_k=1,

@@ -27,7 +27,19 @@ def run_group(pkg: str, files: list[str], src_path: Path) -> int:
     print(f"\n=== Running tests for: {pkg} ({len(files)} files) ===")
     env = os.environ.copy()
     env["PYTHONPATH"] = str(src_path)
-    cmd = [sys.executable, "-m", "pytest", "-q", "--strict-markers"] + files
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "--strict-markers",
+        "--disable-warnings",
+        "-o",
+        "addopts=",
+    ]
+    if pkg != "__root__":
+        cmd.extend(["--cov", pkg, "--cov-report", "term-missing"])
+    cmd.extend(files)
     proc = subprocess.run(cmd, env=env)
     return proc.returncode
 

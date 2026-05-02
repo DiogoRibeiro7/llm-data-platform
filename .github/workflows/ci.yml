@@ -23,10 +23,10 @@ jobs:
           pip install pytest pytest-cov ruff mypy
 
       - name: Lint
-        run: ruff check src tests || true
+        run: ruff check src tests
 
       - name: Type check
-        run: mypy src || true
+        run: mypy src
 
       - name: Test
         run: python -m scripts.run_tests_by_package

@@ -30,7 +30,7 @@ output:
     import copy
     import datetime
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     event1 = {
         "query_id": "q1",
         "trace_id": "t1",

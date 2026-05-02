@@ -29,7 +29,7 @@ output:
     # Write one valid and one invalid interaction event
     import datetime
 
-    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now = datetime.datetime.now(datetime.UTC).isoformat()
     valid_event = {
         "query_id": "q1",
         "trace_id": "t1",
