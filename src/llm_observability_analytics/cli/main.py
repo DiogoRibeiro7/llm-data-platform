@@ -96,6 +96,15 @@ def export_events(events: list[Any], path: str, fmt: str) -> None:
     import pandas as pd
 
     rows = [_to_dict(event) for event in events]
+    if fmt == "parquet":
+        # Parquet writers can fail on empty nested struct columns; serialize nested payloads.
+        rows = [
+            {
+                key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
+                for key, value in row.items()
+            }
+            for row in rows
+        ]
     frame = pd.DataFrame(rows)
     if fmt == "csv":
         frame.to_csv(path, index=False)
