@@ -35,6 +35,13 @@ python -m pip install -U pip
 pip install -e ".[dev]"
 ```
 
+Install profiles
+
+- Base install: `pip install -e .`
+- Development install: `pip install -e ".[dev]"`
+- Observability CLI feature deps: `pip install -e ".[observability-cli]"`
+- Observability CLI + parquet export: `pip install -e ".[observability-cli,parquet]"`
+
 Development commands
 
 - Format: `make format` (runs `ruff format`) 
@@ -94,6 +101,13 @@ The `llm_observability_analytics` package provides a powerful CLI for event vali
 ```bash
 python -m llm_observability_analytics.cli.main --config <config.yaml> [OPTIONS]
 ```
+
+### Feature Dependencies
+
+- `--validate` and `validate-config` require `jsonschema` via `.[observability-cli]`.
+- `--detect-anomalies` requires `numpy` via `.[observability-cli]`.
+- `--export-csv` and `--export-parquet` require `pandas` via `.[observability-cli]`.
+- `--export-parquet` additionally requires `pyarrow` via `.[parquet]`.
 
 #### Core Options
 
