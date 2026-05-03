@@ -90,3 +90,80 @@ def test_diff_contracts_cmd_rejects_non_mapping(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Contract payload must be a mapping"):
         cli_main.diff_contracts_cmd(str(old), str(new))
+
+
+def test_validate_config_cmd_valid_and_invalid(tmp_path: Path) -> None:
+    valid = tmp_path / "valid.yaml"
+    invalid = tmp_path / "invalid.yaml"
+    valid.write_text(
+        """
+events:
+  interactions_path: interactions.jsonl
+  retrievals_path: retrievals.jsonl
+  max_events: 10
+output:
+  validated_events_path: validated.jsonl
+  summary_path: summary.json
+  run_result_path: result.json
+""",
+        encoding="utf-8",
+    )
+    invalid.write_text(
+        """
+events:
+  interactions_path: interactions.jsonl
+output:
+  summary_path: summary.json
+""",
+        encoding="utf-8",
+    )
+
+    assert cli_main.validate_config_cmd(str(valid)) == 0
+    assert cli_main.validate_config_cmd(str(invalid)) == 1
+
+
+def test_diff_contracts_cmd_non_breaking_and_breaking(tmp_path: Path) -> None:
+    old = tmp_path / "old.json"
+    new_non_breaking = tmp_path / "new_non_breaking.json"
+    new_breaking = tmp_path / "new_breaking.json"
+
+    old.write_text('{"field":"value","count":1}', encoding="utf-8")
+    new_non_breaking.write_text('{"field":"value","count":1,"new_field":"x"}', encoding="utf-8")
+    new_breaking.write_text('{"field":"value","count":"one"}', encoding="utf-8")
+
+    assert cli_main.diff_contracts_cmd(str(old), str(new_non_breaking)) == 0
+    assert cli_main.diff_contracts_cmd(str(old), str(new_breaking)) == 1
+
+
+def test_visualize_pipeline_cmd(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        """
+events:
+  interactions_path: interactions.jsonl
+  retrievals_path: retrievals.jsonl
+output:
+  validated_events_path: validated.jsonl
+  summary_path: summary.json
+  run_result_path: result.json
+""",
+        encoding="utf-8",
+    )
+
+    assert cli_main.visualize_pipeline_cmd(str(config)) == 0
+    out = capsys.readouterr().out
+    assert "graph TD" in out
+    assert "Interactions" in out
+
+
+def test_coverage_report_cmd_failure_branch(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    class _Result:
+        returncode = 1
+        stdout = "failed"
+
+    monkeypatch.setattr(cli_main.subprocess, "run", lambda *args, **kwargs: _Result())
+    assert cli_main.coverage_report_cmd() == 1
+    out = capsys.readouterr().out
+    assert "Some tests failed." in out

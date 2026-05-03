@@ -31,5 +31,11 @@ jobs:
       - name: CLI smoke check
         run: python -m llm_observability_analytics.cli.main --help
 
+      - name: Ingestion CLI smoke check
+        run: python -m llm_knowledge_ingestion.cli.main --help
+
+      - name: Foundry CLI smoke check
+        run: python -m llm_dataset_foundry.cli.main --help
+
       - name: Test
         run: python -m scripts.run_tests_by_package
