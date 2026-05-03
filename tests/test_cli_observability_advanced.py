@@ -214,6 +214,23 @@ output:
     assert "is valid" in result.stdout
 
 
+def test_validate_config_subcommand_invalid(repo_root: Path, tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid.yaml"
+    config_path.write_text(
+        """
+events:
+  interactions_path: interactions.jsonl
+output:
+  summary_path: summary.json
+""",
+        encoding="utf-8",
+    )
+
+    result = _run_cli(["validate-config", str(config_path)], repo_root)
+    assert result.returncode == 1
+    assert "is INVALID" in result.stdout
+
+
 def test_diff_contracts_subcommand_breaking_change(repo_root: Path, tmp_path: Path) -> None:
     old_path = tmp_path / "old.json"
     new_path = tmp_path / "new.json"
@@ -226,6 +243,12 @@ def test_diff_contracts_subcommand_breaking_change(repo_root: Path, tmp_path: Pa
     assert "Breaking changes detected" in result.stdout
 
 
+def test_diff_contracts_subcommand_missing_args(repo_root: Path) -> None:
+    result = _run_cli(["diff-contracts"], repo_root)
+    assert result.returncode == 2
+    assert "Usage: python -m llm_observability_analytics.cli.main diff-contracts" in result.stdout
+
+
 def test_visualize_pipeline_subcommand(repo_root: Path, tmp_path: Path) -> None:
     interactions = tmp_path / "interactions.jsonl"
     retrievals = tmp_path / "retrievals.jsonl"
@@ -234,6 +257,18 @@ def test_visualize_pipeline_subcommand(repo_root: Path, tmp_path: Path) -> None:
     result = _run_cli(["visualize-pipeline", str(config_path)], repo_root)
     assert result.returncode == 0
     assert "graph TD" in result.stdout
+
+
+def test_cli_invalid_start_time_returns_error(repo_root: Path, tmp_path: Path) -> None:
+    interactions_path = tmp_path / "interactions.jsonl"
+    retrievals_path = tmp_path / "retrievals.jsonl"
+    ts = datetime.datetime(2026, 4, 1, tzinfo=datetime.UTC).isoformat()
+    interactions_path.write_text(json.dumps(_interaction_event("q1", "t1", ts, 10)) + "\n", encoding="utf-8")
+    retrievals_path.write_text(json.dumps(_retrieval_event("q2", "t2", ts)) + "\n", encoding="utf-8")
+    config_path = _write_obs_config(tmp_path, interactions_path, retrievals_path)
+
+    result = _run_cli(["--config", str(config_path), "--start-time", "not-a-time"], repo_root)
+    assert result.returncode != 0
 
 
 def test_coverage_report_subcommand_unit(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
