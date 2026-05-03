@@ -15,12 +15,10 @@ from llm_observability_analytics.contracts.models import (
 )
 from llm_observability_analytics.events.loader import (
     load_interaction_events,
+    load_interaction_events_with_validation,
     load_retrieval_trace_events,
+    load_retrieval_trace_events_with_validation,
 )
-
-
-def _now_iso() -> str:
-    return datetime.now(tz=UTC).isoformat()
 
 
 def _make_interaction(query_id: str, trace_id: str) -> LLMInteractionEvent:
@@ -103,6 +101,39 @@ def test_load_retrieval_trace_events_success(tmp_path: Path) -> None:
 def test_load_invalid_json_raises(tmp_path: Path) -> None:
     p = tmp_path / "broken.jsonl"
     p.write_text("{not-json}\n", encoding="utf-8")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid JSON"):
         load_interaction_events(p, max_events=10)
 
+
+def test_load_missing_file_raises(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Input file does not exist"):
+        load_interaction_events(tmp_path / "missing.jsonl", max_events=10)
+
+
+def test_load_non_object_json_row_raises(tmp_path: Path) -> None:
+    p = tmp_path / "rows.jsonl"
+    p.write_text("[]\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Expected object JSON"):
+        load_interaction_events(p, max_events=10)
+
+
+def test_load_retrieval_invalid_payload_raises(tmp_path: Path) -> None:
+    p = tmp_path / "retrieval_bad.jsonl"
+    p.write_text('{"query_id": "q1"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid retrieval event"):
+        load_retrieval_trace_events(p, max_events=10)
+
+
+def test_validation_loaders_return_errors_instead_of_raising(tmp_path: Path) -> None:
+    interaction_file = tmp_path / "interactions_invalid.jsonl"
+    retrieval_file = tmp_path / "retrieval_invalid.jsonl"
+    interaction_file.write_text('{"bad": "payload"}\n', encoding="utf-8")
+    retrieval_file.write_text('{"bad": "payload"}\n', encoding="utf-8")
+
+    interactions, interaction_errors = load_interaction_events_with_validation(interaction_file, max_events=10)
+    retrievals, retrieval_errors = load_retrieval_trace_events_with_validation(retrieval_file, max_events=10)
+
+    assert interactions == []
+    assert retrievals == []
+    assert len(interaction_errors) == 1
+    assert len(retrieval_errors) == 1

@@ -8,7 +8,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-OBSERVABILITY_COVERAGE_MIN = 60
+OBSERVABILITY_COVERAGE_MIN = 70
 
 
 def collect_tests(tests_dir: Path):
