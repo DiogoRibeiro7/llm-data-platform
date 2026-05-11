@@ -2,7 +2,12 @@
 
 Tracked in GitHub via milestones. Each milestone has a small set of epic issues with checklists of concrete sub-tasks.
 
-## Current milestone — `coverage-parity-v1`
+## Active milestones
+
+- [`coverage-parity-v1`](#milestone--coverage-parity-v1) — uniform 75% coverage gate across all three packages
+- [`production-ingestion-v1`](#milestone--production-ingestion-v1) — move `llm_knowledge_ingestion` from MVP toward production-grade
+
+## Milestone — `coverage-parity-v1`
 
 [Milestone on GitHub](https://github.com/DiogoRibeiro7/llm-data-platform/milestone/1)
 
@@ -32,6 +37,46 @@ Measured via `python -m scripts.run_tests_by_package`:
 ### Order of operations
 
 #22 and #23 can land in parallel. #24 lands last and flips the gate on.
+
+## Milestone — `production-ingestion-v1`
+
+[Milestone on GitHub](https://github.com/DiogoRibeiro7/llm-data-platform/milestone/2)
+
+**Why:** `llm_knowledge_ingestion` is explicitly an MVP today. Parser classes for PDF/HTML/Markdown raise `NotImplementedError`. Chunking is whitespace-window only with a hardcoded guard against any other strategy. The dedup module computes hashes but nothing compares them. Sources are local filesystem only. A single bad file aborts the whole run. This milestone closes those gaps.
+
+### Epics
+
+1. **[#25 — Real document parsers (PDF, HTML, Markdown-aware, JSON paths)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/25)**
+   - Replace the `NotImplementedError` stubs and wire the live pipeline through the parsers module instead of the inline dispatch in `io/local_files.py`.
+
+2. **[#26 — Smarter chunking (sentence + heading-aware, real tokenizer)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/26)**
+   - Add `sentence_aware` and `heading_aware` strategies alongside `fixed_tokens`; plug in a real tokenizer behind an optional extra with a whitespace fallback.
+
+3. **[#27 — Pluggable sources (remote + streaming)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/27)**
+   - Define a `SourceReader` protocol, add S3 and HTTP readers behind optional extras, support streaming reads so large files don't OOM.
+
+4. **[#28 — Idempotent runs with real deduplication](https://github.com/DiogoRibeiro7/llm-data-platform/issues/28)**
+   - Detect content-hash duplicates, collapse them, write a `dedup_report.jsonl`, and persist run state so re-runs skip unchanged files.
+
+5. **[#29 — Operational hardening (errors, observability hooks, exit codes)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/29)**
+   - Per-file error isolation, a documented exit-code contract, structured logging, and a per-run summary artifact that `llm_observability_analytics` can ingest.
+
+### Order of operations
+
+- **#25 and #26 are coupled.** Heading-aware chunking depends on parser-emitted structure, so #25 should land first or be developed in coordination with #26.
+- **#27 is independent** and can ship in parallel.
+- **#28 and #29 build on the others.** Idempotent runs need parsers/sources stable enough that "unchanged" is a well-defined state. Operational hardening uses the error surfaces added by earlier epics.
+
+A reasonable phasing: #25 → #26 in parallel with #27 → #28 → #29.
+
+### Deferred from this milestone
+
+- OCR for image-only PDFs.
+- DOCX/PPTX parsers.
+- Pre-computed embedding outputs (downstream of `embedding-ready` enrichment).
+- Authenticated source readers (secrets manager integration).
+
+If any of these become urgent, file a `production-ingestion-v2` milestone with the relevant epics.
 
 ## Process
 
