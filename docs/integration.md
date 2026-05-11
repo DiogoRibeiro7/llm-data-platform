@@ -1,43 +1,86 @@
 # Integration
 
-## Role in Platform Flow
+How the three packages compose end-to-end. The flow is one-directional and entirely file-based: each stage reads JSONL produced by the previous stage and writes JSONL plus a summary/manifest.
 
-`llm-observability-analytics` links ingestion artifacts to runtime LLM behavior.
+## End-to-end flow
 
-Flow:
+```text
+source files
+    │
+    ▼
+llm_knowledge_ingestion
+    │   documents.jsonl    (document_id, content_hash, source_id)
+    │   chunks.jsonl       (chunk_id, document_id, text)
+    │   lineage.jsonl      (chunk → document references)
+    │   index_records.jsonl
+    │
+    ├──────────────────────────────────────────────┐
+    │                                              │
+    ▼                                              ▼
+runtime serving                              llm_dataset_foundry
+    │  (uses chunk_id when surfacing context)      ▲
+    ▼                                              │
+llm_observability_analytics                        │
+    │   interactions.jsonl  (query_id, trace_id,   │
+    │                        prompt_text,          │
+    │                        response_text,        │
+    │                        retrieval_references) │
+    │   retrieval_traces.jsonl (query_id,          │
+    │                           trace_id,          │
+    │                           references[])      │
+    └──────────────────────────────────────────────┘
+                                                   │
+                                                   ▼
+                                        prompt_response.jsonl
+                                        retrieval_evaluation.jsonl
+                                        split_assignments.jsonl
+                                        dataset_manifest.json
+                                        quality_report.json
+```
 
-1. `llm-knowledge-ingestion` emits stable `document_id` and `chunk_id`.
-2. Observability captures interaction and retrieval trace events referencing those IDs.
-3. Observability emits analytics-ready event JSONL for `llm-dataset-foundry`.
-4. `llm-dataset-foundry` builds prompt-response and retrieval-eval datasets from these traces.
+## Handoff artifacts
 
-## Upstream and Downstream Boundaries
+### Ingestion → Foundry
 
-Upstream:
+- `documents.jsonl` — normalized document records keyed by `document_id`.
+- `chunks.jsonl` — chunks keyed by `chunk_id`, each carrying `document_id`.
+- `lineage.jsonl` — chunk-to-document lineage.
 
-- ingestion chunk/document artifacts
-- runtime service telemetry
+### Ingestion → Observability (at runtime)
 
-Downstream:
+- `chunks.jsonl` — runtime systems index and retrieve from these chunks; surface `chunk_id` and `document_id` in retrieval results so observability can correlate.
 
-- dataset curation inputs (`interactions.jsonl`, `retrieval_traces.jsonl`)
-- operational summaries and report payloads
+### Observability → Foundry
 
-## Expected Handoff Artifacts
+- `interactions.jsonl` — one record per LLM interaction with `query_id`, `trace_id`, `prompt_text`, `response_text`, `model_context`, `retrieval_references`, `feedback`.
+- `retrieval_traces.jsonl` — one record per retrieval call with `query_id`, `trace_id`, `references[]` (each carrying `document_id`, `chunk_id`, `rank`, `score`), `model_version`, `dataset_version`.
 
-Expected from `llm-knowledge-ingestion`:
+### Foundry outputs
 
-- `chunks.jsonl` with `chunk_id`, `document_id`
+- `prompt_response.jsonl` — curated training pairs.
+- `retrieval_evaluation.jsonl` — retrieval-eval records with ground-truth alignment.
+- `split_assignments.jsonl` — deterministic train/validation/test assignment.
+- `dataset_manifest.json` and `dataset_version_metadata.json` — manifest plus version metadata.
+- `quality_report.json` — quality and dedup stats.
 
-Produced for `llm-dataset-foundry`:
+## Shared identifier policy
 
-- `interactions.jsonl` with `query_id`, `trace_id`, `prompt_text`, `response_text`, `model_context`, `retrieval_references`
-- `retrieval_traces.jsonl` with `query_id`, `trace_id`, `references`, expected targets
+All handoff artifacts must preserve, when available:
 
-## Example Integration Artifacts
+- `source_id` — upstream knowledge source.
+- `document_id` — normalized document.
+- `chunk_id` — chunk derived from a document.
+- `query_id` — a single user/system query.
+- `trace_id` — execution trace grouping events/spans.
+- `dataset_id`, `dataset_version` — curated dataset identity.
+- `model_version` — model that produced runtime output.
 
-See `examples/integration/`:
+Snake_case naming, stable across packages.
 
-- `input_from_ingestion_chunks.jsonl`
-- `output_for_dataset_foundry_interactions.jsonl`
-- `output_for_dataset_foundry_retrieval_traces.jsonl`
+## Example artifacts
+
+See [`examples/integration/`](../examples/integration/) for sample JSONL handoff files matching each step above.
+
+## End-to-end test
+
+[`tests/test_end_to_end_pipeline.py`](../tests/test_end_to_end_pipeline.py) wires up the three CLIs in sequence with temporary configs and verifies the expected artifacts appear. Use it as a reference for working config shapes.

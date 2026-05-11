@@ -10,7 +10,11 @@ from llm_knowledge_ingestion.pipeline.orchestrator import IngestionPipeline
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="llm-knowledge-ingest")
-    parser.add_argument("--config", default="configs/base.yaml", help="Path to configuration file")
+    parser.add_argument(
+        "--config",
+        default="configs/ingestion.yaml",
+        help="Path to configuration file",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

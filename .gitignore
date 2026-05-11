@@ -37,3 +37,5 @@ pip-wheel-metadata
 .pyre/
 *.log
 *.tmp
+
+artifacts/

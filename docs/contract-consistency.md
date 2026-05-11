@@ -1,36 +1,43 @@
 # Contract Consistency Strategy
 
+The three packages now live in one monorepo, so most contract drift is caught at PR time by shared tests. The mechanism documented here still applies for two cases:
+
+1. Aligning with sibling repos that vendored an earlier version of one of these packages.
+2. Catching unintentional schema drift inside the monorepo before it ships.
+
 ## Objective
 
-Keep shared contract identifiers, field names, and handoff formats aligned across independent repositories:
+Keep shared identifiers, field names, contract versions, and handoff formats aligned across:
 
-- `llm-knowledge-ingestion`
-- `llm-observability-analytics`
-- `llm-dataset-foundry`
+- `llm_knowledge_ingestion`
+- `llm_observability_analytics`
+- `llm_dataset_foundry`
 
-## Lightweight Mechanism
+…and across any external repos that still consume these packages' artifacts.
 
-Each repository contains:
+## Mechanism
 
-- `docs/shared-contract-summary.json` (machine-readable contract summary)
-- `scripts/validate_shared_contracts.py` (manual validator)
+In-repo:
+
+- [`docs/shared-contract-summary.json`](shared-contract-summary.json) — machine-readable summary of identifiers, contract versions, and handoff field requirements.
+- [`scripts/validate_shared_contracts.py`](../scripts/validate_shared_contracts.py) — validates that the summary is internally consistent and that example artifacts contain required fields.
 
 The summary defines:
 
-- canonical shared identifiers and semantics
-- repository contract version references
-- produced/consumed handoff artifacts and required fields
-- example artifact paths used for field validation
+- canonical shared identifiers and their semantics
+- contract version constants per package
+- required producer/consumer fields per handoff
+- example artifact paths used during validation
 
-## Manual Validation
-
-Local check:
+## Local validation
 
 ```bash
 python scripts/validate_shared_contracts.py
 ```
 
-Cross-repository alignment check (when sibling repos are available):
+## Cross-repo alignment
+
+When sibling repos exist on disk, pass their summaries with `--peer`:
 
 ```bash
 python scripts/validate_shared_contracts.py \
@@ -38,12 +45,18 @@ python scripts/validate_shared_contracts.py \
   --peer ../llm-dataset-foundry/docs/shared-contract-summary.json
 ```
 
-## Safe Update Process
+## Safe update process
 
-1. Propose contract change in `docs/shared-contract-summary.json` first.
-2. Update affected schemas/docs/examples in the same repo.
-3. Run local validator.
-4. Open coordinated PRs in other repositories.
+1. Propose the contract change in `docs/shared-contract-summary.json`.
+2. Update the affected schema dataclasses, docs, and example artifacts in the same PR.
+3. Run `python scripts/validate_shared_contracts.py` locally.
+4. Open coordinated PRs in any sibling repos.
 5. Update peer summaries and integration examples.
-6. Run cross-repo validation using `--peer` before merge.
-7. Record breaking changes with explicit version bump and migration notes.
+6. Run cross-repo validation with `--peer` before merging.
+7. For breaking changes, bump the contract version constant and add migration notes to the PR description.
+
+The `llm-observability` CLI also ships a `diff-contracts` subcommand that surfaces breaking field changes between two contract files:
+
+```bash
+python -m llm_observability_analytics.cli.main diff-contracts old.json new.json
+```

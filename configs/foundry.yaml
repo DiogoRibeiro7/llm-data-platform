@@ -1,0 +1,27 @@
+ingest:
+  normalized_documents_file: ../examples/normalized-documents/documents.jsonl
+  interaction_events_file: ../examples/traces/interactions.jsonl
+  retrieval_events_file: ../examples/traces/retrieval.jsonl
+  max_records: 10000
+
+dataset:
+  dataset_name: example-dataset
+  dataset_id: example-ds
+  dataset_version: v1
+  schema_version: "1.0"
+  model_version: example-model-v1
+
+quality:
+  dedup_enabled: true
+  min_text_length: 10
+
+splits:
+  seed: 42
+  train_ratio: 0.8
+  validation_ratio: 0.1
+  test_ratio: 0.1
+
+output:
+  curated_dataset_path: ../artifacts/foundry/curated
+  reports_path: ../artifacts/foundry/reports
+  manifests_path: ../artifacts/foundry/manifests

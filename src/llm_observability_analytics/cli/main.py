@@ -30,7 +30,11 @@ def _to_dict(event: Any) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="llm-observability")
     parser.add_argument("--summary", action="store_true", help="Print summary report")
-    parser.add_argument("--config", default="configs/base.yaml", help="Path to configuration file")
+    parser.add_argument(
+        "--config",
+        default="configs/observability.yaml",
+        help="Path to configuration file",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Validate config wiring only")
     parser.add_argument("--validate", action="store_true", help="Validate all events")
     parser.add_argument(
@@ -254,7 +258,7 @@ def _run_subcommand_from_argv() -> int | None:
 
     command = sys.argv[1]
     if command == "validate-config":
-        config_path = sys.argv[2] if len(sys.argv) > 2 else "configs/base.yaml"
+        config_path = sys.argv[2] if len(sys.argv) > 2 else "configs/observability.yaml"
         return validate_config_cmd(config_path)
     if command == "diff-contracts":
         if len(sys.argv) < 4:
@@ -265,7 +269,7 @@ def _run_subcommand_from_argv() -> int | None:
             return 2
         return diff_contracts_cmd(sys.argv[2], sys.argv[3])
     if command == "visualize-pipeline":
-        config_path = sys.argv[2] if len(sys.argv) > 2 else "configs/base.yaml"
+        config_path = sys.argv[2] if len(sys.argv) > 2 else "configs/observability.yaml"
         return visualize_pipeline_cmd(config_path)
     if command == "coverage-report":
         return coverage_report_cmd()

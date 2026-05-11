@@ -1,54 +1,68 @@
-# MVP Ingestion Pipeline
+# Ingestion Pipeline
 
-## Overview
+The knowledge ingestion pipeline reads local source files, normalizes them into canonical documents, deduplicates by content hash, splits documents into token-budgeted chunks, and writes index-ready artifacts.
 
-The MVP pipeline ingests local files (`.txt`, `.md`, `.json`), normalizes them into shared contract models, computes deterministic content hashes, generates chunks, and writes index-ready artifacts.
+## Run
 
-## How To Run
-
-Install dependencies:
+Install (from the repo root):
 
 ```bash
-pip install -e .[dev]
+pip install -e ".[dev]"
 ```
 
-Dry run (configuration and input discovery only):
+Dry run (validates config and lists planned input files without writing artifacts):
 
 ```bash
-python -m llm_knowledge_ingestion.cli.main --dry-run --config configs/base.yaml
+python -m llm_knowledge_ingestion.cli.main --dry-run
 ```
 
-Execute ingestion:
+Execute (uses [`configs/ingestion.yaml`](../configs/ingestion.yaml) by default):
 
 ```bash
-python -m llm_knowledge_ingestion.cli.main --config configs/base.yaml
+python -m llm_knowledge_ingestion.cli.main
+# or with a custom config
+python -m llm_knowledge_ingestion.cli.main --config path/to/ingest.yaml
 ```
 
-## Expected Input Structure
+## Config shape
 
-Input path is configured via `ingestion.input_path` in `configs/base.yaml`.
+```yaml
+ingestion:
+  source_id: my-source           # stable identifier, non-empty
+  input_path: ./examples         # directory scanned recursively
+  max_documents: 100             # cap on processed files
+chunking:
+  strategy: fixed_tokens
+  target_tokens: 400
+  overlap_tokens: 40
+output:
+  normalized_documents_path: ./out/documents
+  chunks_path: ./out/chunks
+  lineage_path: ./out/lineage
+  index_records_path: ./out/index
+  run_result_path: ./out/run/ingestion_result.json
+```
 
-Supported files:
+Relative paths are resolved against the config file's directory.
+
+## Supported inputs
 
 - `.txt`
 - `.md`
 - `.json`
 
-The pipeline recursively scans the input directory and processes supported files in stable sorted order.
+Files are discovered recursively under `ingestion.input_path` and processed in stable sorted order.
 
-## Expected Output Artifacts
+## Outputs
 
-Output destinations are controlled by the `output` section in config.
+- `<normalized_documents_path>/documents.jsonl` — one normalized document per line.
+- `<chunks_path>/chunks.jsonl` — one chunk per line, each carrying `document_id`.
+- `<lineage_path>/lineage.jsonl` — one lineage reference per chunk.
+- `<index_records_path>/index_records.jsonl` — one index-ready record per chunk.
+- `<run_result_path>` — JSON summary with counters and warnings.
 
-- `normalized_documents_path/documents.jsonl`
-  - One normalized document record per line.
-- `chunks_path/chunks.jsonl`
-  - One chunk record per line.
-- `lineage_path/lineage.jsonl`
-  - One lineage reference per chunk.
-- `index_records_path/index_records.jsonl`
-  - One index-ready record per chunk.
-- `run_result_path`
-  - JSON summary including counters and warnings.
+All JSON output is deterministic at the field level (`sort_keys=True`) so artifacts are diffable across runs.
 
-All JSON output is deterministic at record field level (`sort_keys=True`) to support diffability and repeatability.
+## Example
+
+A worked config is constructed at runtime in [`tests/test_end_to_end_pipeline.py`](../tests/test_end_to_end_pipeline.py) and sample inputs live under [`examples/`](../examples/).

@@ -1,0 +1,9 @@
+events:
+  interactions_path: ../examples/traces/interactions.jsonl
+  retrievals_path: ../examples/traces/retrieval.jsonl
+  max_events: 1000
+
+output:
+  validated_events_path: ../artifacts/obs/validated_events.jsonl
+  summary_path: ../artifacts/obs/summary.json
+  run_result_path: ../artifacts/obs/run_result.json

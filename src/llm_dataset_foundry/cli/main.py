@@ -9,7 +9,11 @@ from llm_dataset_foundry.pipeline.orchestrator import DatasetFoundryPipeline
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="llm-dataset-foundry")
-    parser.add_argument("--config", default="configs/base.yaml", help="Path to configuration file")
+    parser.add_argument(
+        "--config",
+        default="configs/foundry.yaml",
+        help="Path to configuration file",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

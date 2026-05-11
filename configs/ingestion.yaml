@@ -1,0 +1,16 @@
+ingestion:
+  source_id: example-source
+  input_path: ../examples/sources
+  max_documents: 100
+
+chunking:
+  strategy: fixed_tokens
+  target_tokens: 400
+  overlap_tokens: 40
+
+output:
+  normalized_documents_path: ../artifacts/ingest/documents
+  chunks_path: ../artifacts/ingest/chunks
+  lineage_path: ../artifacts/ingest/lineage
+  index_records_path: ../artifacts/ingest/index
+  run_result_path: ../artifacts/ingest/run/ingestion_result.json

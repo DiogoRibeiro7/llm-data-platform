@@ -1,196 +1,167 @@
 # llm-data-platform
 
-Monorepo containing lightweight tools for ingesting, processing and observing LLM data workflows.
+A Python monorepo for the LLM data lifecycle: ingest source documents into chunks, curate datasets from those chunks plus runtime traces, and observe LLM interactions with structured events and analytics.
 
-Included packages
+The three packages share contract identifiers (`source_id`, `document_id`, `chunk_id`, `query_id`, `trace_id`, `dataset_id`, `dataset_version`, `model_version`) so artifacts produced by one stage flow cleanly into the next.
 
-- `llm_knowledge_ingestion` — parsers, chunking, sources and pipeline interfaces.
-- `llm_dataset_foundry` — dataset curation utilities and ingestion consumers.
-- `llm_observability_analytics` — runtime telemetry, traces and analytics.
+## Packages
 
-This repository consolidates the three components above to simplify development and CI.
+| Package | Role | CLI module |
+| --- | --- | --- |
+| [`llm_knowledge_ingestion`](src/llm_knowledge_ingestion/) | Parses local files, normalizes them into documents, chunks them, and emits index-ready records with lineage. | `python -m llm_knowledge_ingestion.cli.main` |
+| [`llm_dataset_foundry`](src/llm_dataset_foundry/) | Builds prompt–response and retrieval-evaluation datasets from normalized documents and trace artifacts, runs quality checks, assigns splits, writes manifests. | `python -m llm_dataset_foundry.cli.main` |
+| [`llm_observability_analytics`](src/llm_observability_analytics/) | Loads runtime interaction and retrieval-trace events, validates them, computes summaries, detects anomalies, exports CSV/Parquet. | `python -m llm_observability_analytics.cli.main` (also installed as `llm-observability`) |
 
-Quickstart
+Data flow:
 
-Prerequisites:
+```text
+sources ──▶ knowledge_ingestion ──▶ documents.jsonl, chunks.jsonl, lineage.jsonl
+                                          │
+                                          ▼
+runtime ──▶ observability_analytics ──▶ interactions.jsonl, retrieval_traces.jsonl
+                                          │
+                                          ▼
+                                   dataset_foundry ──▶ prompt_response.jsonl,
+                                                       retrieval_evaluation.jsonl,
+                                                       split_assignments.jsonl,
+                                                       dataset_manifest.json
+```
 
-- Python 3.12+
-- Optional: `make` for convenience targets
+See [docs/architecture.md](docs/architecture.md) for boundaries and [docs/integration.md](docs/integration.md) for the full handoff contract.
 
-Setup (Unix/macOS):
+## Install
+
+Requires Python 3.12+.
 
 ```bash
 python -m venv .venv
+# Unix/macOS
 source .venv/bin/activate
-python -m pip install -U pip
-pip install -e '.[dev]'
-```
-
-Setup (Windows PowerShell):
-
-```powershell
-python -m venv .venv
+# Windows PowerShell
 . .\.venv\Scripts\Activate.ps1
+
 python -m pip install -U pip
 pip install -e ".[dev]"
 ```
 
-Install profiles
+### Install profiles
 
-- Base install: `pip install -e .`
-- Development install: `pip install -e ".[dev]"`
-- Observability CLI feature deps: `pip install -e ".[observability-cli]"`
-- Observability CLI + parquet export: `pip install -e ".[observability-cli,parquet]"`
+| Extra | Adds | Needed for |
+| --- | --- | --- |
+| (base) | `PyYAML` | All three pipelines |
+| `dev` | `ruff`, `mypy`, `pytest`, `pytest-cov` | Local development |
+| `observability-cli` | `jsonschema`, `numpy`, `pandas` | `--validate`, `validate-config`, `--detect-anomalies`, `--export-csv` |
+| `parquet` | `pyarrow` | `--export-parquet` (combine with `observability-cli`) |
 
-Development commands
+Example: `pip install -e ".[dev,observability-cli,parquet]"`.
 
-- Format: `make format` (runs `ruff format`) 
-- Lint: `make lint` (runs `ruff check`)
-- Type check: `make typecheck` (runs `mypy src`)
-- Tests: `make test` (runs `pytest`) or `python -m scripts.run_tests_by_package` to run tests grouped by package
+## Running the pipelines
 
+Each pipeline takes a YAML config via `--config` (with a runnable default that points at the bundled examples) and supports `--dry-run` to validate wiring without writing artifacts. See the [docs/mvp-*.md](docs/) files for the required keys, and [tests/test_end_to_end_pipeline.py](tests/test_end_to_end_pipeline.py) for a fully worked example that runs all three end to end.
 
-Testing notes
+Per-pipeline default configs live in [configs/](configs/) and resolve their relative paths against the [examples/](examples/) directory, writing outputs to `artifacts/` (gitignored).
 
-This monorepo contains tests for multiple packages. Use the provided script to run tests grouped by package to avoid pytest collection collisions:
+### Ingestion
+
+```bash
+python -m llm_knowledge_ingestion.cli.main                    # uses configs/ingestion.yaml
+python -m llm_knowledge_ingestion.cli.main --config my.yaml   # or your own
+```
+
+Reads `.txt`, `.md`, `.json` from `ingestion.input_path` and writes `documents.jsonl`, `chunks.jsonl`, `lineage.jsonl`, `index_records.jsonl`. See [docs/mvp-ingestion.md](docs/mvp-ingestion.md).
+
+### Dataset foundry
+
+```bash
+python -m llm_dataset_foundry.cli.main                        # uses configs/foundry.yaml
+```
+
+Reads normalized documents and trace JSONL, writes `prompt_response.jsonl`, `retrieval_evaluation.jsonl`, `split_assignments.jsonl`, plus a quality report and dataset manifest. See [docs/mvp-dataset-pipeline.md](docs/mvp-dataset-pipeline.md).
+
+### Observability
+
+```bash
+python -m llm_observability_analytics.cli.main --summary      # uses configs/observability.yaml
+```
+
+Common flags:
+
+- `--summary` — interaction/retrieval counts and latency stats.
+- `--schema` — print the detected schema for loaded events.
+- `--start-time` / `--end-time` — ISO-8601 timestamp filter.
+- `--export-csv PATH` / `--export-parquet PATH` — write `<path>_interactions.*` and `<path>_retrievals.*`.
+- `--detect-anomalies` — events with latency outliers (>3σ) or missing required fields.
+- `--validate` — report invalid events; pair with `--filter-invalid` to continue past errors.
+
+Subcommands:
+
+```bash
+python -m llm_observability_analytics.cli.main validate-config configs/observability.yaml
+python -m llm_observability_analytics.cli.main diff-contracts old.json new.json
+python -m llm_observability_analytics.cli.main visualize-pipeline configs/observability.yaml
+python -m llm_observability_analytics.cli.main coverage-report
+```
+
+## Development
+
+```bash
+make format     # ruff format
+make lint       # ruff check
+make typecheck  # mypy src
+make test       # pytest
+make ci         # lint + typecheck + test
+```
+
+Because the three packages each have their own test modules with overlapping names, run grouped tests to avoid pytest collection collisions:
 
 ```bash
 python -m scripts.run_tests_by_package
 ```
 
-End-to-end pipeline test
-
-To verify the full workflow (ingestion → dataset curation → observability analytics), run the end-to-end integration test:
+End-to-end smoke test across all three CLIs:
 
 ```bash
 pytest tests/test_end_to_end_pipeline.py
 ```
-This test runs all main CLIs in sequence with sample data and checks that all expected output artifacts are produced.
 
-Continuous Integration
-
-The GitHub Actions workflow is at [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs lint, type-check and the grouped tests.
-
-Contributing
-
-- Open issues or PRs against `main`.
-- Run `make format` and `make lint` before pushing.
-- Add unit tests for new behavior and keep `mypy` passing.
-
-Repository layout
-
-- `src/` — source packages under `llm_dataset_foundry`, `llm_knowledge_ingestion`, `llm_observability_analytics`
-- `tests/` — integration/unit tests
-- `scripts/` — utility scripts (e.g., `run_tests_by_package.py`)
-- `.github/workflows/ci.yml` — CI configuration
-
-License
-
-This project uses the repository `LICENSE` file.
-
-Contact
-
-For questions, open an issue or contact the maintainers via GitHub.
-
-## llm_observability_analytics CLI Features
-
-The `llm_observability_analytics` package provides a powerful CLI for event validation, analytics, and pipeline management.
-
-### Main CLI Usage
-
-```bash
-python -m llm_observability_analytics.cli.main --config <config.yaml> [OPTIONS]
-```
-
-### Feature Dependencies
-
-- `--validate` and `validate-config` require `jsonschema` via `.[observability-cli]`.
-- `--detect-anomalies` requires `numpy` via `.[observability-cli]`.
-- `--export-csv` and `--export-parquet` require `pandas` via `.[observability-cli]`.
-- `--export-parquet` additionally requires `pyarrow` via `.[parquet]`.
-
-#### Core Options
-
-- `--summary`  
-  Print a summary report of event types and basic statistics.
-
-- `--schema`  
-  Print the detected schema (fields, types, missing fields) for loaded events.
-
-- `--start-time <ISO8601>` / `--end-time <ISO8601>`  
-  Filter events by timestamp range (applies to `request_timestamp`/`retrieval_timestamp`).
-
-- `--export-csv <path>`  
-  Export filtered events to CSV files (creates `<path>_interactions.csv` and `<path>_retrievals.csv`).
-
-- `--export-parquet <path>`  
-  Export filtered events to Parquet files (creates `<path>_interactions.parquet` and `<path>_retrievals.parquet`).
-
-- `--detect-anomalies`  
-  Print events with anomalous latency (3+ stddev above mean) or missing required fields.
-
-- `--validate`  
-  Validate all events and print/report any invalid records.
-
-- `--filter-invalid`  
-  Skip invalid events when summarizing (otherwise, loading stops at first error).
-
-#### Example
-
-```bash
-python -m llm_observability_analytics.cli.main --config configs/base.yaml --summary --schema --export-csv out/events.csv
-```
-
----
-
-### Advanced CLI Commands
-
-#### Validate Config
-
-Validate a YAML config file against the expected schema:
-
-```bash
-python -m llm_observability_analytics.cli.main validate-config <config.yaml>
-```
-
-#### Diff Contracts
-
-Compare two contract/schema files and report breaking changes:
-
-```bash
-python -m llm_observability_analytics.cli.main diff-contracts <old_contract.json|yaml> <new_contract.json|yaml>
-```
-
-#### Visualize Pipeline
-
-Generate a Mermaid diagram of the pipeline from a config file:
-
-```bash
-python -m llm_observability_analytics.cli.main visualize-pipeline <config.yaml>
-```
-
-#### Coverage Report
-
-Run all tests and print a coverage summary:
-
-```bash
-python -m llm_observability_analytics.cli.main coverage-report
-```
-
----
-
-### Pre-commit Hooks
-
-This repo includes a `.pre-commit-config.yaml` for linting, formatting, type-checking, and running tests before each commit.
-
-**Setup:**
+### Pre-commit hooks
 
 ```bash
 pip install pre-commit
 pre-commit install
 ```
 
----
+See [.pre-commit-config.yaml](.pre-commit-config.yaml) for the hooks.
 
-**See the CLI help (`--help`) for more options and details.**
+## Repository layout
 
+```text
+src/
+  llm_knowledge_ingestion/   parsers, chunking, IO, normalize, pipeline, CLI
+  llm_dataset_foundry/       ingest, quality, splits, versioning, reports, CLI
+  llm_observability_analytics/ events, traces, metrics, storage, reports, CLI
+tests/                        shared test suite (run via run_tests_by_package)
+docs/                         architecture, integration, contracts, MVP guides
+examples/                     sample documents and integration handoffs
+configs/                      per-pipeline default configs (ingestion, foundry, observability)
+scripts/                      bootstrap, grouped test runner, contract validator
+.github/workflows/ci.yml      lint, type-check, CLI smoke checks, grouped tests
+```
+
+## Contracts and cross-repo consistency
+
+Shared identifiers and handoff field requirements are defined in [docs/data-contracts.md](docs/data-contracts.md) and summarized machine-readably in [docs/shared-contract-summary.json](docs/shared-contract-summary.json). Validate locally with:
+
+```bash
+python scripts/validate_shared_contracts.py
+```
+
+See [docs/contract-consistency.md](docs/contract-consistency.md) for the safe-update process.
+
+## CI
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs `ruff check`, `mypy`, `--help` smoke checks for all three CLIs, and the grouped test suite on every push and PR.
+
+## License
+
+See [LICENSE](LICENSE).
