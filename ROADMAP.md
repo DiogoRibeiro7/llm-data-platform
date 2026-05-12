@@ -4,10 +4,10 @@ Tracked in GitHub via milestones. Each milestone has a small set of epic issues 
 
 ## Active milestones
 
-- [`coverage-parity-v1`](#milestone--coverage-parity-v1) — uniform 75% coverage gate across all three packages
-- [`production-ingestion-v1`](#milestone--production-ingestion-v1) — move `llm_knowledge_ingestion` from MVP toward production-grade
+- [`coverage-parity-v1`](#coverage-parity-v1) — uniform 75% coverage gate across all three packages
+- [`production-ingestion-v1`](#production-ingestion-v1) — move `llm_knowledge_ingestion` from MVP toward production-grade
 
-## Milestone — `coverage-parity-v1`
+## coverage-parity-v1
 
 [Milestone on GitHub](https://github.com/DiogoRibeiro7/llm-data-platform/milestone/1)
 
@@ -23,7 +23,7 @@ Measured via `python -m scripts.run_tests_by_package`:
 | `llm_knowledge_ingestion` | 76% | none | parsers/base.py at 0% |
 | `llm_dataset_foundry` | 50% | none | 8 modules at 0%, 4 partially covered |
 
-### Epics
+### Coverage epics
 
 1. **[#22 — Bring `llm_knowledge_ingestion` to 75% coverage gate](https://github.com/DiogoRibeiro7/llm-data-platform/issues/22)**
    - Smallest lift: only `parsers/base.py` needs new tests. Already at 76% in aggregate.
@@ -34,17 +34,17 @@ Measured via `python -m scripts.run_tests_by_package`:
 3. **[#24 — Enforce uniform 75% coverage gate across all packages](https://github.com/DiogoRibeiro7/llm-data-platform/issues/24)**
    - Once #22 and #23 land, change `scripts/run_tests_by_package.py` from a per-package hardcoded threshold to a uniform mapping, and remove the observability-specific `--cov` from `pyproject.toml`.
 
-### Order of operations
+### Coverage rollout order
 
-#22 and #23 can land in parallel. #24 lands last and flips the gate on.
+Issues #22 and #23 can land in parallel. #24 lands last and flips the gate on.
 
-## Milestone — `production-ingestion-v1`
+## production-ingestion-v1
 
 [Milestone on GitHub](https://github.com/DiogoRibeiro7/llm-data-platform/milestone/2)
 
 **Why:** `llm_knowledge_ingestion` is explicitly an MVP today. Parser classes for PDF/HTML/Markdown raise `NotImplementedError`. Chunking is whitespace-window only with a hardcoded guard against any other strategy. The dedup module computes hashes but nothing compares them. Sources are local filesystem only. A single bad file aborts the whole run. This milestone closes those gaps.
 
-### Epics
+### Ingestion epics
 
 1. **[#25 — Real document parsers (PDF, HTML, Markdown-aware, JSON paths)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/25)**
    - Replace the `NotImplementedError` stubs and wire the live pipeline through the parsers module instead of the inline dispatch in `io/local_files.py`.
@@ -61,7 +61,7 @@ Measured via `python -m scripts.run_tests_by_package`:
 5. **[#29 — Operational hardening (errors, observability hooks, exit codes)](https://github.com/DiogoRibeiro7/llm-data-platform/issues/29)**
    - Per-file error isolation, a documented exit-code contract, structured logging, and a per-run summary artifact that `llm_observability_analytics` can ingest.
 
-### Order of operations
+### Ingestion rollout order
 
 - **#25 and #26 are coupled.** Heading-aware chunking depends on parser-emitted structure, so #25 should land first or be developed in coordination with #26.
 - **#27 is independent** and can ship in parallel.
